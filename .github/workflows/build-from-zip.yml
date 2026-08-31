@@ -11,23 +11,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Unzip project
         run: |
-          unzip -o AmmarWorkout-Android-Project.zip -d project
+          ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: No ZIP file found"
+            exit 1
+          fi
+
+          mkdir -p android-project
+          unzip -o "$ZIP_FILE" -d android-project
 
       - name: Find Gradle project
         run: |
-          GRADLEW=$(find project -name gradlew -type f | head -n 1)
-          echo "GRADLEW=$GRADLEW" >> $GITHUB_ENV
+          GRADLEW=$(find android-project -type f -name "gradlew" -print -quit)
+
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew not found"
+            echo "Files found:"
+            find android-project -maxdepth 4 -type f | head -100
+            exit 1
+          fi
+
+          echo "Gradle wrapper found at: $GRADLEW"
+          echo "GRADLEW=$GRADLEW" >> "$GITHUB_ENV"
+          echo "PROJECT_DIR=$(dirname "$GRADLEW")" >> "$GITHUB_ENV"
 
       - name: Build APK
         run: |
-          chmod +x "$GRADLEW"
-          cd "$(dirname "$GRADLEW")"
+          cd "$PROJECT_DIR"
+          chmod +x ./gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmmarWorkout-APK
-          path: project/**/build/outputs/apk/**/*.apk
+          name: Android-APK
+          path: |
+            android-project/**/build/outputs/apk/**/*.apk
+          if-no-files-found: error
