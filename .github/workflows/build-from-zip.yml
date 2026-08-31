@@ -1,4 +1,4 @@
-   name: Build Android APK
+name: Build Android APK
 
 on:
   workflow_dispatch:
@@ -17,24 +17,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Unzip project
-        run: |
-          ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
 
-          if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: No ZIP file found"
-            exit 1
-          fi
+      - name: Build APK
+        working-directory: android-project
+        run: gradle assembleDebug --stacktrace
 
-          mkdir -p android-project
-          unzip -o "$ZIP_FILE" -d android-project
-
-      - name: Find Android project
-        run: |
-          PROJECT_DIR=$(find android-project -type f -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1 | xargs dirname)
-
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "ERROR: Android project not found"
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android-project/app/build/outputs/apk/debug/app-debug.apk            echo "ERROR: Android project not found"
             find android-project -maxdepth 4 -type f
             exit 1
           fi
