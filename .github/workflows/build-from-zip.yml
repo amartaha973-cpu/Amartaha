@@ -1,0 +1,32 @@
+name: Build Android Project
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: |
+          unzip -o AmmarWorkout-Android-Project.zip -d project
+
+      - name: Find project
+        run: |
+          find project -name gradlew -type f -exec chmod +x {} \;
+
+      - name: Build APK
+        run: |
+          GRADLEW=$(find project -name gradlew -type f | head -n 1)
+          cd "$(dirname "$GRADLEW")"
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: project/**/build/outputs/apk/**/*.apk
